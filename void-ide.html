@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VOID IDE — Deep Learning Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg0:#03070d;--bg1:#060d16;--bg2:#0a1420;--bg3:#0e1c2c;--bg4:#122438;
+  --border:#0d2a3d;--border2:#082030;--border3:#1a3f5a;
+  --green:#00ff88;--green3:#003d1f;--green4:#002a15;
+  --cyan:#00e5ff;--cyan2:#00b8cc;--cyan3:#003d4d;
+  --amber:#ffb300;--red:#ff3366;--purple:#a855f7;
+  --dim:#234d6a;
+  --text:#b8dce8;--text2:#6a9ab0;--text3:#2d5a72;--text4:#1a3a4d;
+  --glow-g:0 0 10px #00ff8855,0 0 30px #00ff8820;
+  --glow-c:0 0 10px #00e5ff44,0 0 25px #00e5ff15;
+  --font:'JetBrains Mono',monospace;
+  --font-display:'Orbitron',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:var(--bg0);color:var(--text);font-family:var(--font);font-size:13px;display:flex;flex-direction:column;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);}
+
+/* ── TITLEBAR ── */
+#titlebar{height:38px;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;flex-shrink:0;user-select:none;position:relative;}
+.wm-dots{display:flex;gap:7px;padding:0 16px;}
+.wm-dots span{width:11px;height:11px;border-radius:50%;display:block;}
+.wm-dots span:nth-child(1){background:#ff5f57;}
+.wm-dots span:nth-child(2){background:#febc2e;}
+.wm-dots span:nth-child(3){background:#28c840;}
+#logo{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-size:13px;font-weight:900;color:var(--green);text-shadow:var(--glow-g);letter-spacing:8px;white-space:nowrap;}
+#logo em{color:var(--cyan);font-style:normal;}
+#sys-clock{margin-left:auto;padding-right:16px;font-size:10px;color:var(--cyan2);letter-spacing:2px;}
+
+/* ── TOOLBAR ── */
+#toolbar{height:36px;background:var(--bg1);border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:4px;padding:0 10px;flex-shrink:0;}
+.tb-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text2);font-family:var(--font);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.tb-btn:hover{border-color:var(--green);color:var(--green);background:var(--green4);}
+#run-btn{background:var(--green4);border-color:var(--green);color:var(--green);box-shadow:var(--glow-g);font-weight:600;}
+#run-btn:hover{background:var(--green3);box-shadow:0 0 20px #00ff8866;}
+#run-btn:active{transform:scale(.97);}
+.tb-sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+.tb-select{padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--cyan);font-family:var(--font);font-size:10px;outline:none;cursor:pointer;}
+.tb-select:focus{border-color:var(--cyan);}
+#status-pill{margin-left:auto;display:flex;align-items:center;gap:7px;padding:3px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-size:9px;letter-spacing:2px;color:var(--text3);}
+#status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:var(--glow-g);animation:blink 2s infinite;}
+#status-dot.busy{background:var(--amber);box-shadow:0 0 8px #ffb30099;animation:pulse-a 1s infinite;}
+#status-dot.err{background:var(--red);animation:none;}
+@keyframes blink{50%{opacity:.2;}}
+@keyframes pulse-a{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── WORKSPACE ── */
+#workspace{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+/* ── SIDEBAR ── */
+#sidebar{width:236px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;overflow-y:auto;}
+.panel-head{padding:8px 13px;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.panel-head button{background:none;border:none;color:var(--green);cursor:pointer;font-size:16px;line-height:1;opacity:.7;}
+.panel-head button:hover{opacity:1;}
+#file-explorer{flex-shrink:0;padding:4px 0;min-height:60px;}
+.file-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:11px;color:var(--text2);border-left:2px solid transparent;transition:all .12s;}
+.file-item:hover{background:var(--bg3);color:var(--text);}
+.file-item.active{background:var(--bg3);color:var(--green);border-left-color:var(--green);}
+.file-icon{font-size:13px;flex-shrink:0;}
+.file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-del{opacity:0;font-size:11px;color:var(--red);transition:opacity .12s;padding:0 2px;cursor:pointer;}
+.file-item:hover .file-del{opacity:.5;}
+.file-del:hover{opacity:1!important;}
+
+/* sidebar sections */
+.sb-section{border-top:1px solid var(--border2);padding:10px 12px;flex-shrink:0;}
+.sec-label{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);margin-bottom:7px;}
+
+/* pkg */
+.pkg-row{display:flex;gap:4px;}
+#pkg-input{flex:1;padding:5px 9px;background:var(--bg0);border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:var(--font);font-size:11px;outline:none;}
+#pkg-input:focus{border-color:var(--green);}
+#pkg-input::placeholder{color:var(--dim);}
+#pkg-btn{padding:5px 10px;background:var(--green4);border:1px solid var(--green);border-radius:3px;color:var(--green);font-family:var(--font);font-size:13px;cursor:pointer;}
+#pkg-btn:hover{background:var(--green3);}
+#pkg-tags{margin-top:7px;max-height:60px;overflow-y:auto;}
+.pkg-tag{display:inline-block;padding:2px 8px;margin:2px 2px 0 0;background:var(--bg4);border:1px solid var(--border3);border-radius:10px;color:var(--cyan2);font-size:9px;}
+
+/* templates */
+#tpl-list{display:flex;flex-direction:column;gap:3px;}
+.tpl-btn{padding:5px 10px;background:none;border:1px solid var(--border);border-radius:3px;color:var(--text2);font-family:var(--font);font-size:10px;cursor:pointer;text-align:left;transition:all .12s;}
+.tpl-btn:hover{border-color:var(--purple);color:var(--purple);background:rgba(168,85,247,.06);}
+
+/* ── GOOGLE DRIVE SECTION ── */
+#drive-clientid-wrap{margin-bottom:8px;}
+#drive-clientid-input{
+  width:100%;padding:5px 8px;background:var(--bg0);border:1px solid var(--border);
+  border-radius:3px;color:var(--amber);font-family:var(--font);font-size:10px;
+  outline:none;margin-bottom:4px;
+}
+#drive-clientid-input:focus{border-color:var(--amber);}
+#drive-clientid-input::placeholder{color:var(--dim);font-size:9px;}
+#drive-set-btn{
+  width:100%;padding:4px;background:none;border:1px solid var(--amber);border-radius:3px;
+  color:var(--amber);font-family:var(--font);font-size:9px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+}
+#drive-set-btn:hover{background:rgba(255,179,0,.1);}
+#drive-help{font-size:9px;color:var(--text3);line-height:1.6;margin-top:5px;}
+#drive-help a{color:var(--cyan2);text-decoration:none;}
+#drive-help a:hover{text-decoration:underline;}
+
+#drive-auth-area{display:none;}
+#drive-signin-btn{
+  width:100%;padding:6px 10px;background:none;border:1px solid var(--border3);border-radius:3px;
+  color:var(--text2);font-family:var(--font);font-size:10px;letter-spacing:1px;
+  cursor:pointer;transition:all .15s;margin-bottom:6px;
+}
+#drive-signin-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan3);}
+#drive-signin-btn.connected{border-color:var(--green);color:var(--green);background:var(--green4);}
+#drive-user-info{font-size:9px;color:var(--text3);margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drive-btns{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+.drive-btn{
+  flex:1;min-width:calc(50% - 4px);padding:5px 4px;background:none;
+  border:1px solid var(--border);border-radius:3px;color:var(--text2);
+  font-family:var(--font);font-size:9px;letter-spacing:.5px;text-transform:uppercase;
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.drive-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);background:var(--cyan3);}
+.drive-btn:disabled{opacity:.3;cursor:not-allowed;}
+.drive-btn.save-all{border-color:var(--green);color:var(--green);}
+.drive-btn.save-all:hover:not(:disabled){background:var(--green4);}
+#drive-folder-info{font-size:9px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#drive-folder-info span{color:var(--cyan2);}
+#drive-tree{max-height:90px;overflow-y:auto;margin-top:6px;}
+.drive-file{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:10px;color:var(--text2);cursor:pointer;border-radius:2px;transition:all .1s;}
+.drive-file:hover{background:var(--bg3);color:var(--text);}
+.df-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* env info */
+#env-info{border-top:1px solid var(--border2);padding:9px 13px;font-size:9px;color:var(--text3);flex-shrink:0;}
+.env-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.env-val{color:var(--cyan2);}
+
+/* ── CENTER ── */
+#center{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;}
+#tabs-bar{display:flex;background:var(--bg1);border-bottom:1px solid var(--border2);flex-shrink:0;overflow-x:auto;min-height:36px;}
+#tabs-bar::-webkit-scrollbar{height:2px;}
+#tabs-bar::-webkit-scrollbar-thumb{background:var(--border);}
+.tab{display:flex;align-items:center;gap:8px;padding:8px 18px;cursor:pointer;font-size:11px;color:var(--text3);border-right:1px solid var(--border2);white-space:nowrap;transition:all .1s;border-top:2px solid transparent;flex-shrink:0;}
+.tab:hover{color:var(--text2);background:var(--bg2);}
+.tab.active{color:var(--green);background:var(--bg0);border-top-color:var(--green);}
+.tab-close{opacity:.3;font-size:10px;color:var(--red);transition:opacity .1s;}
+.tab:hover .tab-close,.tab.active .tab-close{opacity:.7;}
+.tab-close:hover{opacity:1!important;}
+.tab-unsaved{width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:-4px;}
+
+#editor-core{flex:1;display:flex;overflow:hidden;}
+#line-numbers{width:52px;flex-shrink:0;padding:14px 10px 14px 0;background:var(--bg1);border-right:1px solid var(--border2);text-align:right;color:var(--text4);font-size:11px;line-height:1.75;user-select:none;overflow:hidden;}
+#code-editor{flex:1;padding:14px 18px;background:var(--bg0);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.75;border:none;outline:none;resize:none;tab-size:4;white-space:pre;overflow:auto;caret-color:var(--green);letter-spacing:.2px;}
+#code-editor::selection{background:#00e5ff18;}
+
+#statusbar{display:flex;align-items:center;gap:0;padding:3px 14px;background:var(--bg1);border-top:1px solid var(--border2);flex-shrink:0;font-size:10px;color:var(--text3);}
+.sb-item{padding:0 12px;border-right:1px solid var(--border);}
+.sb-item:first-child{padding-left:0;}
+.sb-green{color:var(--green);}
+.sb-cyan{color:var(--cyan2);}
+#cursor-pos{margin-left:auto;}
+
+#resize-h{height:4px;background:var(--border2);cursor:ns-resize;flex-shrink:0;transition:background .2s;}
+#resize-h:hover{background:var(--green);}
+
+#terminal-wrap{height:210px;flex-shrink:0;background:var(--bg1);border-top:1px solid var(--border2);display:flex;flex-direction:column;}
+#term-header{display:flex;align-items:center;gap:10px;padding:4px 14px;border-bottom:1px solid var(--border2);flex-shrink:0;}
+.term-label{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);}
+.term-prompt{color:var(--green);font-size:12px;opacity:.6;}
+#clear-btn{margin-left:auto;padding:2px 9px;background:none;border:1px solid var(--border);border-radius:2px;color:var(--text3);font-family:var(--font);font-size:9px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;}
+#clear-btn:hover{border-color:var(--red);color:var(--red);}
+#terminal-body{flex:1;overflow-y:auto;padding:8px 16px;font-size:12px;line-height:1.65;}
+#terminal-body::-webkit-scrollbar{width:4px;}
+#terminal-body::-webkit-scrollbar-thumb{background:var(--border3);}
+.out-line{margin-bottom:1px;display:flex;gap:8px;word-break:break-all;}
+.out-pre{opacity:.35;flex-shrink:0;user-select:none;min-width:14px;}
+.out-print .out-text{color:#c0dce8;}
+.out-err .out-text{color:var(--red);}
+.out-sys .out-text{color:var(--text3);font-style:italic;}
+.out-ok .out-text{color:var(--green);}
+.out-warn .out-text{color:var(--amber);}
+.out-info .out-text{color:var(--cyan2);}
+
+/* ── MODAL ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:1000;}
+#modal-overlay.show{display:flex;}
+#modal{background:var(--bg2);border:1px solid var(--border3);border-top:2px solid var(--green);padding:24px 28px;width:380px;box-shadow:0 30px 80px rgba(0,0,0,.9),var(--glow-g);}
+#modal h3{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:16px;}
+#modal input,#modal select{width:100%;padding:9px 12px;background:var(--bg0);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:12px;outline:none;margin-bottom:10px;border-radius:3px;}
+#modal input:focus,#modal select:focus{border-color:var(--green);}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
+.modal-btns button{padding:8px 18px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--font);font-size:10px;cursor:pointer;border-radius:3px;letter-spacing:1px;text-transform:uppercase;}
+.modal-btns button.primary{background:var(--green4);border-color:var(--green);color:var(--green);}
+
+/* ── BOOT ── */
+#boot-screen{position:fixed;inset:0;background:var(--bg0);z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+#boot-logo{font-family:var(--font-display);font-size:48px;font-weight:900;color:var(--green);text-shadow:var(--glow-g);letter-spacing:14px;}
+#boot-logo em{color:var(--cyan);font-style:normal;text-shadow:var(--glow-c);}
+.boot-sub{font-size:10px;letter-spacing:5px;color:var(--text3);text-transform:uppercase;}
+.boot-bar-wrap{width:340px;height:2px;background:var(--bg3);overflow:hidden;border-radius:1px;}
+.boot-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .35s ease;box-shadow:var(--glow-g);}
+#boot-msg{font-size:10px;color:var(--dim);letter-spacing:2px;min-height:16px;}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:9999;
+  padding:10px 16px;background:var(--bg3);border:1px solid var(--border3);
+  border-left:3px solid var(--green);border-radius:3px;
+  font-size:11px;color:var(--text);letter-spacing:.3px;
+  opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;max-width:300px;line-height:1.5;
+}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.err{border-left-color:var(--red);}
+#toast.warn{border-left-color:var(--amber);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg0);}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--dim);}
+
+/* ── CODEMIRROR CUSTOM THEME ── */
+.CodeMirror{
+  height:100%!important;width:100%!important;
+  background:#03070d!important;color:#b8dce8!important;
+  font-family:'JetBrains Mono',monospace!important;
+  font-size:13px!important;line-height:1.75!important;
+  border:none!important;padding:0!important;
+  letter-spacing:.2px;
+}
+.CodeMirror-scroll{padding:14px 0 14px 0;}
+.CodeMirror-lines{padding:0 18px!important;}
+.CodeMirror-gutters{background:#060d16!important;border-right:1px solid #082030!important;min-width:52px!important;}
+.CodeMirror-linenumber{color:#1a3a4d!important;font-size:11px!important;padding:0 8px 0 4px!important;}
+.CodeMirror-cursor{border-left:2px solid #00ff88!important;}
+.CodeMirror-selected{background:#00e5ff18!important;}
+.CodeMirror-activeline-background{background:#0a1420!important;}
+.CodeMirror-matchingbracket{color:#00ff88!important;font-weight:bold;outline:1px solid #00ff8855;}
+
+/* Python token colors */
+.cm-keyword{color:#ff6eb4!important;font-weight:500;}       /* def class if for return etc */
+.cm-builtin{color:#00e5ff!important;}                        /* print len range etc */
+.cm-def{color:#82cfff!important;}                            /* function names */
+.cm-variable{color:#b8dce8!important;}
+.cm-variable-2{color:#9cdcfe!important;}
+.cm-variable-3{color:#4ec9b0!important;}
+.cm-string{color:#ce9178!important;}                         /* strings */
+.cm-string-2{color:#ce9178!important;}
+.cm-number{color:#b5cea8!important;}                         /* numbers */
+.cm-comment{color:#3a6a7a!important;font-style:italic;}      /* comments */
+.cm-operator{color:#00e5ff!important;}                       /* operators */
+.cm-punctuation{color:#6a9ab0!important;}
+.cm-property{color:#9cdcfe!important;}
+.cm-atom{color:#569cd6!important;}                           /* True False None */
+.cm-meta{color:#ffb300!important;}
+.cm-error{color:#ff3366!important;text-decoration:underline wavy;}
+/* JS specific */
+.cm-tag{color:#4ec9b0!important;}
+.cm-attribute{color:#9cdcfe!important;}
+.cm-header{color:#00ff88!important;}
+/* Decorators */
+.cm-decorator{color:#c586c0!important;}
+#editor-core .CodeMirror-wrap{height:100%;}
+#editor-core{position:relative;}
+#line-numbers{display:none;}  /* CM has its own gutter */
+
+</style>
+</head>
+<body>
+
+<!-- BOOT -->
+<div id="boot-screen">
+  <div id="boot-logo">V<em>O</em>ID</div>
+  <div class="boot-sub">Deep Learning IDE — v2.2</div>
+  <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
+  <div id="boot-msg">INITIALIZING...</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- TITLEBAR -->
+<div id="titlebar">
+  <div class="wm-dots"><span></span><span></span><span></span></div>
+  <div id="logo">V<em>O</em>ID <span style="color:var(--dim);font-size:9px;letter-spacing:3px;font-weight:400;font-family:var(--font);">DEEP LEARNING IDE</span></div>
+  <div id="sys-clock"></div>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <button class="tb-btn" id="run-btn" onclick="runCode()">▶ RUN <span style="opacity:.4;font-size:9px;margin-left:4px;">⌘↵</span></button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="openNewFileModal()">+ New</button>
+  <button class="tb-btn" onclick="saveCurrentFile()">↓ Save</button>
+  <button class="tb-btn" onclick="driveSync()">☁ Drive</button>
+  <button class="tb-btn" onclick="clearOutput()">✕ Clear</button>
+  <div class="tb-sep"></div>
+  <select class="tb-select" id="lang-select" onchange="changeLanguage()">
+    <option value="python">Python</option>
+    <option value="javascript">JavaScript</option>
+    <option value="typescript">TypeScript</option>
+    <option value="bash">Bash</option>
+    <option value="plaintext">Plain Text</option>
+  </select>
+  <div id="status-pill">
+    <div id="status-dot"></div>
+    <span id="status-text">BOOTING</span>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+
+    <!-- FILE EXPLORER -->
+    <div class="panel-head">
+      <span>Explorer</span>
+      <button onclick="openNewFileModal()">+</button>
+    </div>
+    <div id="file-explorer"></div>
+
+    <!-- PACKAGES -->
+    <div class="sb-section">
+      <div class="sec-label">Packages</div>
+      <div class="pkg-row">
+        <input id="pkg-input" type="text" placeholder="numpy, torch, pyspark…" onkeydown="if(event.key==='Enter')installPackage()"/>
+        <button id="pkg-btn" onclick="installPackage()">↓</button>
+      </div>
+      <div id="pkg-tags"></div>
+    </div>
+
+    <!-- DL TEMPLATES -->
+    <div class="sb-section">
+      <div class="sec-label">DL Templates</div>
+      <div id="tpl-list">
+        <button class="tpl-btn" onclick="loadTemplate('mlp')">🧠 MLP / Feedforward</button>
+        <button class="tpl-btn" onclick="loadTemplate('cnn')">🔲 Conv2D + Pooling</button>
+        <button class="tpl-btn" onclick="loadTemplate('attention')">🎯 Self-Attention / MHA</button>
+        <button class="tpl-btn" onclick="loadTemplate('training')">🔁 Training Loop</button>
+        <button class="tpl-btn" onclick="loadTemplate('tokenizer')">✂️ Tokenizer</button>
+        <button class="tpl-btn" onclick="loadTemplate('embedding')">📐 Embeddings + PE</button>
+        <button class="tpl-btn" onclick="loadTemplate('pyspark')">⚡ PySpark (install first)</button>
+      </div>
+    </div>
+
+    <!-- GOOGLE DRIVE -->
+    <div class="sb-section">
+      <div class="sec-label">☁ Google Drive</div>
+
+      <!-- Step 1: Client ID setup -->
+      <div id="drive-clientid-wrap">
+        <input id="drive-clientid-input" type="text" placeholder="Paste OAuth Client ID…"/>
+        <button id="drive-set-btn" onclick="driveSetClientId()">Connect Drive</button>
+        <div id="drive-help">
+          Need a Client ID?<br>
+          1. <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a><br>
+          2. Create OAuth 2.0 Client ID<br>
+          3. Type: Web App<br>
+          4. Add this page URL to<br>&nbsp;&nbsp;&nbsp;Authorized JS Origins<br>
+          5. Paste Client ID above
+        </div>
+      </div>
+
+      <!-- Step 2: Auth + Drive actions (shown after Client ID set) -->
+      <div id="drive-auth-area">
+        <button id="drive-signin-btn" onclick="driveSignIn()">🔑 Sign in with Google</button>
+        <div id="drive-user-info"></div>
+        <div class="drive-btns">
+          <button class="drive-btn save-all" onclick="driveSaveAll()" disabled id="btn-save-all">↑ Save All</button>
+          <button class="drive-btn" onclick="driveSaveFile()" disabled id="btn-save-one">↑ Save File</button>
+          <button class="drive-btn" onclick="driveOpenFolder()" disabled id="btn-open">↓ Open…</button>
+          <button class="drive-btn" onclick="driveListFiles()" disabled id="btn-list">⟳ Refresh</button>
+        </div>
+        <div id="drive-folder-info">Folder: <span id="drive-folder-name">—</span></div>
+        <div id="drive-tree"></div>
+      </div>
+    </div>
+
+    <!-- ENV INFO -->
+    <div id="env-info">
+      <div class="env-row"><span>Runtime</span><span class="env-val">Pyodide 0.25</span></div>
+      <div class="env-row"><span>Python</span><span class="env-val" id="py-ver">—</span></div>
+      <div class="env-row"><span>Backend</span><span class="env-val">WASM / Browser</span></div>
+      <div class="env-row"><span>GPU</span><span class="env-val" style="color:var(--amber)">CPU only</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div id="tabs-bar"></div>
+    <div id="editor-core">
+      <div id="line-numbers"></div>
+      <textarea id="code-editor" spellcheck="false" style="display:none;"></textarea>
+      <div id="cm-editor-wrap" style="flex:1;overflow:hidden;height:100%;"></div>
+    </div>
+    <div id="statusbar">
+      <span class="sb-item sb-green" id="active-lang">Python</span>
+      <span class="sb-item sb-cyan" id="file-size">0 B</span>
+      <span id="cursor-pos">Ln 1, Col 1</span>
+    </div>
+    <div id="resize-h"></div>
+    <div id="terminal-wrap">
+      <div id="term-header">
+        <span class="term-label">Terminal</span>
+        <span class="term-prompt">$_</span>
+        <button id="clear-btn" onclick="clearOutput()">Clear</button>
+      </div>
+      <div id="terminal-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <h3>// New File</h3>
+    <input id="new-file-name" type="text" placeholder="model.py" onkeydown="if(event.key==='Enter')createNewFile()"/>
+    <select id="new-file-lang">
+      <option value="python">Python (.py)</option>
+      <option value="javascript">JavaScript (.js)</option>
+      <option value="typescript">TypeScript (.ts)</option>
+      <option value="bash">Bash (.sh)</option>
+      <option value="plaintext">Plain Text (.txt)</option>
+    </select>
+    <div class="modal-btns">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="primary" onclick="createNewFile()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- CodeMirror 5 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  CORE STATE
+// ═══════════════════════════════════════════════════════
+let pyodide = null;
+let files = {}, activeFile = null, fileCounter = 0, installedPkgs = [];
+
+const LANG_EXT   = {python:'py',javascript:'js',typescript:'ts',bash:'sh',plaintext:'txt'};
+const LANG_ICONS = {python:'🐍',javascript:'⚡',typescript:'🔷',bash:'💲',plaintext:'📄'};
+
+// ═══════════════════════════════════════════════════════
+//  STARTERS & TEMPLATES
+// ═══════════════════════════════════════════════════════
+const STARTERS = {
+python:`#!/usr/bin/env python3
+"""VOID IDE — Python Workspace"""
+import sys
+print(f"Python {sys.version}")
+print("Runtime ready. Install packages via the sidebar →")
+print()
+# Uncomment to try:
+# import numpy as np
+# x = np.random.randn(4, 4)
+# print(x)
+`,
+javascript:`// JavaScript — runs natively in browser
+const sigmoid = x => 1 / (1 + Math.exp(-x));
+const relu    = x => Math.max(0, x);
+const z = [-2, -1, 0, 1, 2];
+console.log("sigmoid:", z.map(v => sigmoid(v).toFixed(4)));
+console.log("relu:   ", z.map(relu));
+`,
+typescript:`// TypeScript\ntype Fn = (x:number)=>number;\nconst relu:Fn = x=>Math.max(0,x);\nconsole.log([-1,0,1,2].map(relu));\n`,
+bash:`#!/bin/bash\necho "VOID IDE"\n`,
+plaintext:`VOID IDE — Notes\n─────────────────\n`
+};
+
+const TEMPLATES = {
+mlp:`import numpy as np
+np.random.seed(42)
+
+def relu(z):   return np.maximum(0, z)
+def relu_d(z): return (z > 0).astype(float)
+def softmax(z):
+    e = np.exp(z - z.max(axis=1, keepdims=True))
+    return e / e.sum(axis=1, keepdims=True)
+def cross_entropy(p, y):
+    return -np.log(p[np.arange(len(y)), y] + 1e-9).mean()
+
+class MLP:
+    def __init__(self, dims, lr=0.05):
+        self.lr = lr
+        self.W = [np.random.randn(dims[i], dims[i+1]) * np.sqrt(2/dims[i]) for i in range(len(dims)-1)]
+        self.b = [np.zeros(dims[i+1]) for i in range(len(dims)-1)]
+    def forward(self, X):
+        self.cache = [X]
+        for i,(W,b) in enumerate(zip(self.W,self.b)):
+            Z = self.cache[-1] @ W + b
+            A = softmax(Z) if i==len(self.W)-1 else relu(Z)
+            self.cache.append(A)
+        return self.cache[-1]
+    def backward(self, y):
+        n = len(y)
+        dA = self.cache[-1].copy(); dA[np.arange(n),y] -= 1; dA /= n
+        for i in reversed(range(len(self.W))):
+            self.W[i] -= self.lr*(self.cache[i].T @ dA)
+            self.b[i] -= self.lr*dA.sum(0)
+            if i>0: dA = (dA @ self.W[i].T) * relu_d(self.cache[i])
+    def fit(self, X, y, epochs=300):
+        for ep in range(epochs):
+            p = self.forward(X)
+            loss = cross_entropy(p, y)
+            self.backward(y)
+            if ep % 75 == 0:
+                acc = (p.argmax(1)==y).mean()
+                print(f"Epoch {ep:4d} | loss={loss:.4f} | acc={acc:.2%}")
+
+X = np.random.randn(256, 6)
+y = (X[:,0]+X[:,1] > 0).astype(int)
+model = MLP([6, 32, 16, 2])
+model.fit(X, y)
+print("Done. Predictions:", model.forward(X[:5]).argmax(1))
+`,
+cnn:`import numpy as np
+
+def conv2d(x, kernel, stride=1):
+    kH,kW = kernel.shape
+    oH=(x.shape[0]-kH)//stride+1; oW=(x.shape[1]-kW)//stride+1
+    out=np.zeros((oH,oW))
+    for i in range(oH):
+        for j in range(oW):
+            out[i,j]=(x[i*stride:i*stride+kH,j*stride:j*stride+kW]*kernel).sum()
+    return out
+
+def max_pool2d(x, size=2):
+    oH,oW=x.shape[0]//size,x.shape[1]//size
+    out=np.zeros((oH,oW))
+    for i in range(oH):
+        for j in range(oW):
+            out[i,j]=x[i*size:(i+1)*size,j*size:(j+1)*size].max()
+    return out
+
+kernels = {
+  "Sobel-X": np.array([[-1,0,1],[-2,0,2],[-1,0,1]],dtype=float),
+  "Sobel-Y": np.array([[-1,-2,-1],[0,0,0],[1,2,1]],dtype=float),
+  "Laplace": np.array([[0,1,0],[1,-4,1],[0,1,0]],dtype=float),
+}
+img = np.random.randint(0,256,(16,16)).astype(float)
+print(f"Input: {img.shape}")
+for name,k in kernels.items():
+    fm=conv2d(img,k); pl=max_pool2d(fm)
+    print(f"{name}: conv={fm.shape} pool={pl.shape} max={fm.max():.1f}")
+`,
+attention:`import numpy as np
+
+def softmax(x,axis=-1):
+    e=np.exp(x-x.max(axis=axis,keepdims=True))
+    return e/e.sum(axis=axis,keepdims=True)
+
+def scaled_dot_attention(Q,K,V,mask=None):
+    d_k=Q.shape[-1]
+    scores=Q@K.swapaxes(-2,-1)/np.sqrt(d_k)
+    if mask is not None: scores=np.where(mask==0,-1e9,scores)
+    w=softmax(scores)
+    return w@V,w
+
+class MultiHeadAttention:
+    def __init__(self,d_model,n_heads):
+        self.h,self.d_k=n_heads,d_model//n_heads
+        d=d_model
+        self.Wq=np.random.randn(d,d)*0.02
+        self.Wk=np.random.randn(d,d)*0.02
+        self.Wv=np.random.randn(d,d)*0.02
+        self.Wo=np.random.randn(d,d)*0.02
+    def forward(self,X,mask=None):
+        B,T,D=X.shape; h,dk=self.h,self.d_k
+        Q=(X@self.Wq).reshape(B,T,h,dk).transpose(0,2,1,3)
+        K=(X@self.Wk).reshape(B,T,h,dk).transpose(0,2,1,3)
+        V=(X@self.Wv).reshape(B,T,h,dk).transpose(0,2,1,3)
+        out,w=scaled_dot_attention(Q,K,V,mask)
+        out=out.transpose(0,2,1,3).reshape(B,T,D)
+        return out@self.Wo,w
+
+np.random.seed(0)
+B,T,D=2,8,64
+X=np.random.randn(B,T,D)
+mask=np.tril(np.ones((T,T)))
+mha=MultiHeadAttention(D,8)
+out,w=mha.forward(X,mask)
+print(f"Input: {X.shape} → Output: {out.shape}")
+print(f"Attn weights: {w.shape}, row sum: {w[0,0,0].sum():.6f}")
+`,
+training:`import numpy as np
+np.random.seed(42)
+
+EPOCHS,BATCH,LR=150,32,0.02
+D_IN,D_H,D_OUT=10,32,1
+
+W1=np.random.randn(D_IN,D_H)*np.sqrt(2/D_IN)
+b1=np.zeros(D_H)
+W2=np.random.randn(D_H,D_OUT)*np.sqrt(2/D_H)
+b2=np.zeros(D_OUT)
+
+def forward(X):
+    Z1=X@W1+b1; A1=np.maximum(0,Z1)
+    return A1@W2+b2, A1, Z1
+
+def mse(yh,y): return ((yh-y)**2).mean()
+
+N=512
+X=np.random.randn(N,D_IN)
+y=(X[:,:3].sum(1,keepdims=True)+np.random.randn(N,1)*0.1)
+split=int(N*0.8)
+Xtr,ytr=X[:split],y[:split]
+Xva,yva=X[split:],y[split:]
+
+history=[]
+for ep in range(EPOCHS):
+    idx=np.random.permutation(len(Xtr))
+    Xtr,ytr=Xtr[idx],ytr[idx]
+    ep_loss=0
+    for i in range(0,len(Xtr),BATCH):
+        Xb,yb=Xtr[i:i+BATCH],ytr[i:i+BATCH]
+        yh,A1,Z1=forward(Xb)
+        loss=mse(yh,yb); ep_loss+=loss
+        dL=2*(yh-yb)/len(yb)
+        W2-=LR*(A1.T@dL); b2-=LR*dL.sum(0)
+        dA1=dL@W2.T*(Z1>0)
+        W1-=LR*(Xb.T@dA1); b1-=LR*dA1.sum(0)
+    val_loss=mse(forward(Xva)[0],yva)
+    history.append(ep_loss/(len(Xtr)//BATCH))
+    if ep%30==0: print(f"Epoch {ep:3d} | train={history[-1]:.4f} | val={val_loss:.4f}")
+
+print(f"Best val loss: {min(history):.4f}")
+`,
+tokenizer:`class WordTokenizer:
+    PAD,UNK,BOS,EOS="<PAD>","<UNK>","<BOS>","<EOS>"
+    def __init__(self):
+        self.vocab={self.PAD:0,self.UNK:1,self.BOS:2,self.EOS:3}
+        self.inv={v:k for k,v in self.vocab.items()}; self._i=4
+    def fit(self,texts):
+        for t in texts:
+            for w in t.lower().split():
+                if w not in self.vocab:
+                    self.vocab[w]=self._i; self.inv[self._i]=w; self._i+=1
+        print(f"Vocab size: {len(self.vocab)}")
+    def encode(self,text,max_len=None):
+        ids=[2]+[self.vocab.get(w,1) for w in text.lower().split()]+[3]
+        if max_len: ids=ids[:max_len]+[0]*(max_len-len(ids))
+        return ids
+    def decode(self,ids):
+        return " ".join(self.inv.get(i,"?") for i in ids if i not in {0,2,3})
+
+corpus=["transformers use self-attention to process sequences",
+        "large language models learn from vast text data",
+        "tokenization is the first step in NLP pipelines"]
+wt=WordTokenizer(); wt.fit(corpus)
+enc=wt.encode("transformers use attention",max_len=10)
+print("Encoded:",enc)
+print("Decoded:",wt.decode(enc))
+`,
+embedding:`import numpy as np
+
+class Embedding:
+    def __init__(self,vocab,dim): self.E=np.random.randn(vocab,dim)*0.02
+    def __call__(self,ids): return self.E[ids]
+
+def positional_encoding(seq_len,d_model):
+    PE=np.zeros((seq_len,d_model))
+    pos=np.arange(seq_len)[:,None]
+    div=np.exp(np.arange(0,d_model,2)*(-np.log(10000.0)/d_model))
+    PE[:,0::2]=np.sin(pos*div); PE[:,1::2]=np.cos(pos*div)
+    return PE
+
+def cosine_sim(a,b):
+    return np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)+1e-9)
+
+VOCAB,DIM,SEQ=500,64,12
+emb=Embedding(VOCAB,DIM)
+pe=positional_encoding(SEQ,DIM)
+ids=np.array([[1,5,42,99,200,11,33,7,14,300,8,55]])
+vecs=emb(ids); final=vecs+pe[None,:,:]
+
+print(f"Embedding matrix: {emb.E.shape}")
+print(f"Token IDs:        {ids.shape}")
+print(f"+ Positional enc: {final.shape}")
+print(f"cos(1,1)={cosine_sim(emb.E[1],emb.E[1]):.4f}  cos(1,5)={cosine_sim(emb.E[1],emb.E[5]):.4f}")
+`,
+pyspark:`# PySpark in VOID IDE (local mode — no cluster needed)
+# STEP 1: In the Packages sidebar, type: pyspark  then click ↓
+# STEP 2: Wait ~1-2 min for download, then Run this file (Ctrl+Enter)
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, avg, count, desc
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, FloatType
+import warnings; warnings.filterwarnings("ignore")
+
+spark = SparkSession.builder \
+    .master("local[2]") \
+    .appName("VOID-IDE") \
+    .config("spark.driver.memory","512m") \
+    .config("spark.sql.shuffle.partitions","4") \
+    .getOrCreate()
+spark.sparkContext.setLogLevel("ERROR")
+print(f"Spark {spark.version} ready")
+
+schema = StructType([
+    StructField("name",       StringType(),  True),
+    StructField("department", StringType(),  True),
+    StructField("salary",     IntegerType(), True),
+    StructField("score",      FloatType(),   True),
+])
+data = [
+    ("Alice","Engineering",95000,9.2),("Bob","Engineering",88000,8.7),
+    ("Carol","Data Science",105000,9.8),("Dave","Data Science",98000,9.1),
+    ("Eve","Marketing",72000,7.5),("Frank","Marketing",68000,7.1),
+    ("Grace","Engineering",91000,8.9),("Hank","Data Science",112000,9.5),
+]
+df = spark.createDataFrame(data, schema)
+print("=== Full Dataset ==="); df.show()
+print("=== Dept Summary ===")
+df.groupBy("department").agg(
+    count("*").alias("headcount"),
+    avg("salary").alias("avg_salary"),
+    avg("score").alias("avg_score")
+).orderBy(desc("avg_salary")).show()
+print("=== Top Earners (salary > 90k) ===")
+df.filter(col("salary") > 90000).orderBy(desc("salary")).show()
+
+df.createOrReplaceTempView("employees")
+print("=== SQL API ===")
+spark.sql("SELECT department, ROUND(AVG(salary),0) AS avg_sal, COUNT(*) AS n FROM employees GROUP BY department ORDER BY avg_sal DESC").show()
+
+spark.stop(); print("Spark stopped.")
+`
+};
+
+// ═══════════════════════════════════════════════════════
+//  BOOT — PYODIDE
+// ═══════════════════════════════════════════════════════
+function setBootProgress(msg, pct) {
+  document.getElementById('boot-msg').textContent = msg;
+  document.getElementById('boot-bar').style.width = pct + '%';
+}
+
+async function boot() {
+  setBootProgress('LOADING PYTHON RUNTIME...', 15);
+  try {
+    pyodide = await loadPyodide();
+    setBootProgress('PATCHING I/O STREAMS...', 60);
+    await pyodide.runPythonAsync(`
+import sys, io
+class _CB(io.TextIOBase):
+    def __init__(self,fn): self._fn=fn; self._buf=""
+    def write(self,s):
+        self._buf+=s
+        while '\\n' in self._buf:
+            line,self._buf=self._buf.split('\\n',1); self._fn(line)
+        return len(s)
+    def flush(self): pass
+import js
+sys.stdout=_CB(lambda l: js._pyOut(l,"out-print"))
+sys.stderr=_CB(lambda l: js._pyOut(l,"out-err"))
+    `);
+    setBootProgress('LOADING MICROPIP...', 85);
+    await pyodide.loadPackage('micropip');
+    const ver = pyodide.runPython('import sys; ".".join(map(str,sys.version_info[:3]))');
+    document.getElementById('py-ver').textContent = ver;
+    setBootProgress('READY', 100);
+    setTimeout(() => {
+      document.getElementById('boot-screen').style.display = 'none';
+      appendOut('// VOID IDE v2.2 — Python runtime online', 'out-sys');
+      appendOut(`// Python ${ver} | Pyodide 0.25 | micropip ready`, 'out-sys');
+      appendOut('// ☁ Google Drive: paste your OAuth Client ID in the sidebar to enable', 'out-info');
+      appendOut('', 'out-sys');
+      setStatus('ok', 'READY');
+    }, 350);
+  } catch(e) {
+    setBootProgress('FAILED: ' + e.message, 100);
+    setStatus('err', 'INIT ERROR');
+  }
+}
+window._pyOut = (t, cls) => appendOut(t, cls);
+
+// ═══════════════════════════════════════════════════════
+//  STATUS + CLOCK
+// ═══════════════════════════════════════════════════════
+function setStatus(s, t) {
+  document.getElementById('status-dot').className = s === 'ok' ? '' : s;
+  document.getElementById('status-text').textContent = t;
+}
+setInterval(() => {
+  document.getElementById('sys-clock').textContent =
+    new Date().toLocaleTimeString('en-US', {hour12:false});
+}, 1000);
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type !== 'ok' ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  FILE MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function newFile(name, lang, content) {
+  const id = 'f' + (++fileCounter);
+  files[id] = {id, name, lang, content: content ?? STARTERS[lang] ?? '', saved: false, driveId: null};
+  renderAll(); switchFile(id); return id;
+}
+
+function switchFile(id) {
+  if (activeFile && files[activeFile] && cm)
+    files[activeFile].content = cm.getValue();
+  activeFile = id;
+  const f = files[id];
+  document.getElementById('lang-select').value = f.lang;
+  document.getElementById('active-lang').textContent = f.lang[0].toUpperCase() + f.lang.slice(1);
+  setEditorContent(f.content, f.lang);
+  renderAll(); updateCursor(); updateFileSize();
+}
+
+function deleteFile(id, e) {
+  e.stopPropagation();
+  if (Object.keys(files).length <= 1) return;
+  delete files[id];
+  if (activeFile === id) switchFile(Object.keys(files)[0]);
+  else renderAll();
+}
+
+function saveCurrentFile() {
+  if (!activeFile) return;
+  if (cm) files[activeFile].content = cm.getValue();
+  files[activeFile].saved = true;
+  renderAll();
+  showToast('Saved locally: '+files[activeFile].name);
+}
+
+function renderAll() { renderExplorer(); renderTabs(); }
+
+function renderExplorer() {
+  const el = document.getElementById('file-explorer'); el.innerHTML = '';
+  Object.values(files).forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'file-item' + (f.id === activeFile ? ' active' : '');
+    d.onclick = () => switchFile(f.id);
+    const driveIcon = f.driveId ? ' ☁' : '';
+    d.innerHTML = `<span class="file-icon">${LANG_ICONS[f.lang]||'📄'}</span>
+      <span class="file-name" title="${f.name}">${f.name}${driveIcon}</span>
+      <span class="file-del" onclick="deleteFile('${f.id}',event)">✕</span>`;
+    el.appendChild(d);
+  });
+}
+
+function renderTabs() {
+  const el = document.getElementById('tabs-bar'); el.innerHTML = '';
+  Object.values(files).forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'tab' + (f.id === activeFile ? ' active' : '');
+    d.onclick = () => switchFile(f.id);
+    d.innerHTML = `${LANG_ICONS[f.lang]} ${f.name}${f.driveId?' ☁':''}
+      <span class="tab-close" onclick="deleteFile('${f.id}',event)">✕</span>`;
+    el.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CODEMIRROR EDITOR
+// ═══════════════════════════════════════════════════════
+let cm = null;
+
+const CM_MODE = {
+  python:'python', javascript:'javascript', typescript:'javascript',
+  bash:'shell', plaintext:null
+};
+
+function initCodeMirror() {
+  const wrap = document.getElementById('cm-editor-wrap');
+  cm = CodeMirror(wrap, {
+    value: '',
+    mode: 'python',
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+    indentUnit: 4,
+    tabSize: 4,
+    indentWithTabs: false,
+    lineWrapping: false,
+    extraKeys: {
+      'Tab': function(c) {
+        if (c.somethingSelected()) c.indentSelection('add');
+        else c.replaceSelection('    ');
+      },
+      'Shift-Tab': function(c) { c.indentSelection('subtract'); },
+      'Ctrl-/':    function(c) { c.toggleComment && c.toggleComment(); },
+      'Cmd-/':     function(c) { c.toggleComment && c.toggleComment(); },
+      'Ctrl-Enter':function()  { runCode(); },
+      'Cmd-Enter': function()  { runCode(); },
+      'Ctrl-S':    function()  { saveCurrentFile(); },
+      'Cmd-S':     function()  { saveCurrentFile(); },
+    }
+  });
+  cm.on('change', function() {
+    if (activeFile) files[activeFile].content = cm.getValue();
+    updateFileSize();
+  });
+  cm.on('cursorActivity', function() {
+    const cur = cm.getCursor();
+    document.getElementById('cursor-pos').textContent =
+      'Ln '+(cur.line+1)+', Col '+(cur.ch+1);
+  });
+  cm.setSize('100%','100%');
+}
+
+function updateLineNumbers() {}
+function syncScroll() {}
+function onEditorInput() {}
+function handleEditorKey(e) {}
+
+function updateCursor() {
+  if (!cm) return;
+  const cur = cm.getCursor();
+  document.getElementById('cursor-pos').textContent =
+    'Ln '+(cur.line+1)+', Col '+(cur.ch+1);
+}
+
+function updateFileSize() {
+  if (!activeFile) return;
+  const b = new TextEncoder().encode(files[activeFile]?.content||'').length;
+  document.getElementById('file-size').textContent =
+    b < 1024 ? b+' B' : (b/1024).toFixed(1)+' KB';
+}
+
+function setEditorContent(content, lang) {
+  if (!cm) return;
+  const mode = CM_MODE[lang];
+  cm.setOption('mode', mode || null);
+  cm.setValue(content);
+  cm.clearHistory();
+  cm.scrollTo(0,0);
+}
+
+function changeLanguage() {
+  if (!activeFile) return;
+  const lang = document.getElementById('lang-select').value;
+  files[activeFile].lang = lang;
+  files[activeFile].name = files[activeFile].name.replace(/\.[^.]+$/, '.'+LANG_EXT[lang]);
+  document.getElementById('active-lang').textContent = lang[0].toUpperCase()+lang.slice(1);
+  if (cm) cm.setOption('mode', CM_MODE[lang]||null);
+  renderAll();
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  TEMPLATES
+// ═══════════════════════════════════════════════════════
+function loadTemplate(key) {
+  const tpl = TEMPLATES[key]; if (!tpl) return;
+  newFile(key + '.py', 'python', tpl);
+  showToast(`Template loaded: ${key}`);
+}
+
+// ═══════════════════════════════════════════════════════
+//  TERMINAL OUTPUT
+// ═══════════════════════════════════════════════════════
+const PRE = {'out-print':'›','out-err':'✗','out-ok':'✓','out-sys':'//','out-warn':'⚠','out-info':'ℹ'};
+function appendOut(text, cls='out-print') {
+  const el = document.getElementById('terminal-body');
+  const d = document.createElement('div');
+  d.className = 'out-line ' + cls;
+  d.innerHTML = `<span class="out-pre">${PRE[cls]||'›'}</span><span class="out-text">${esc(text)}</span>`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+function clearOutput() { document.getElementById('terminal-body').innerHTML = ''; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════════════
+//  RUN CODE
+// ═══════════════════════════════════════════════════════
+async function runCode() {
+  if (!activeFile) return;
+  if (cm) files[activeFile].content = cm.getValue();
+  const f = files[activeFile];
+  appendOut('', 'out-sys');
+  appendOut(`▶ ${f.name} [${f.lang.toUpperCase()}] — ${new Date().toLocaleTimeString()}`, 'out-info');
+  appendOut('─'.repeat(54), 'out-sys');
+  setStatus('busy', 'RUNNING');
+  try {
+    if (f.lang === 'python') {
+      if (!pyodide) { appendOut('Pyodide not ready.', 'out-err'); }
+      else { try { await pyodide.runPythonAsync(f.content); } catch(e) { appendOut(String(e), 'out-err'); } }
+    } else if (f.lang === 'javascript' || f.lang === 'typescript') {
+      const ol=console.log, oe=console.error, ow=console.warn;
+      console.log = (...a) => appendOut(a.join(' '),'out-print');
+      console.error = (...a) => appendOut(a.join(' '),'out-err');
+      console.warn = (...a) => appendOut(a.join(' '),'out-warn');
+      try {
+        let src = f.content;
+        if (f.lang === 'typescript') {
+          src = src.replace(/:\s*(string|number|boolean|any|void|null|undefined|never|object)\b/g,'')
+                   .replace(/<[A-Z][a-zA-Z0-9]*>/g,'')
+                   .replace(/\binterface\b[^{]*\{[^}]*\}/g,'')
+                   .replace(/\btype\s+\w+\s*=[^;]+;/g,'');
+        }
+        (new Function(src))();
+      } catch(e) { appendOut(String(e),'out-err'); }
+      finally { console.log=ol; console.error=oe; console.warn=ow; }
+    } else {
+      appendOut(`${f.lang.toUpperCase()} needs a native compiler.`, 'out-warn');
+    }
+    setStatus('ok', 'DONE');
+  } catch(e) {
+    appendOut(String(e), 'out-err'); setStatus('err', 'ERROR');
+    setTimeout(() => setStatus('ok','READY'), 3000);
+  }
+  appendOut('─'.repeat(54), 'out-sys');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PACKAGES
+// ═══════════════════════════════════════════════════════
+async function installPackage() {
+  const inp = document.getElementById('pkg-input');
+  const pkg = inp.value.trim();
+  if (!pkg || !pyodide) return;
+  inp.value = '';
+  appendOut(`Installing: ${pkg}…`, 'out-warn');
+  setStatus('busy', 'INSTALLING');
+  try {
+    const safePkg = pkg.replace(/['"\\]/g,'');
+    await pyodide.runPythonAsync(`import micropip; await micropip.install("${safePkg}")`);
+    installedPkgs.push(pkg);
+    document.getElementById('pkg-tags').innerHTML =
+      installedPkgs.map(p => `<span class="pkg-tag">${p}</span>`).join('');
+    appendOut('✓ Installed: '+pkg, 'out-ok');
+    if (pkg.toLowerCase().includes('pyspark')) {
+      appendOut('// PySpark ready! Use the ⚡ PySpark template in the sidebar.', 'out-info');
+    }
+    showToast('✓ '+pkg+' installed');
+    setStatus('ok', 'READY');
+  } catch(e) {
+    appendOut(`Failed: ${e}`, 'out-err');
+    showToast(`Failed to install ${pkg}`, 'err');
+    setStatus('err', 'FAILED');
+    setTimeout(() => setStatus('ok','READY'), 3000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════
+function openNewFileModal() {
+  document.getElementById('new-file-name').value = '';
+  document.getElementById('modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('new-file-name').focus(), 60);
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+function createNewFile() {
+  const lang = document.getElementById('new-file-lang').value;
+  let name = document.getElementById('new-file-name').value.trim();
+  if (!name) name = 'untitled.' + LANG_EXT[lang];
+  if (!name.includes('.')) name += '.' + LANG_EXT[lang];
+  newFile(name, lang); closeModal();
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESIZE TERMINAL
+// ═══════════════════════════════════════════════════════
+(function(){
+  const h = document.getElementById('resize-h');
+  let drag=false, sy=0, sh=0;
+  h.addEventListener('mousedown', e => {
+    drag=true; sy=e.clientY;
+    sh=document.getElementById('terminal-wrap').offsetHeight;
+    document.body.style.cursor='ns-resize'; document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    document.getElementById('terminal-wrap').style.height =
+      Math.max(60, Math.min(500, sh+(sy-e.clientY))) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    drag=false; document.body.style.cursor=''; document.body.style.userSelect='';
+  });
+})();
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); runCode(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveCurrentFile(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); openNewFileModal(); }
+  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='S') { e.preventDefault(); driveSaveAll(); }
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  GOOGLE DRIVE INTEGRATION
+//  Uses Google Identity Services (OAuth 2.0) + Drive REST API v3
+//  No gapi.client needed — all calls via fetch with bearer token
+// ═══════════════════════════════════════════════════════════════════════
+let driveClientId   = localStorage.getItem('void_drive_clientid') || '';
+let driveToken      = null;
+let driveTokenExpiry= 0;
+let driveFolderId   = null;   // "VOID-IDE" folder in Drive root
+let driveFolderName = 'VOID-IDE';
+let driveSignedIn   = false;
+
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_API   = 'https://www.googleapis.com/drive/v3';
+const UPLOAD_API  = 'https://www.googleapis.com/upload/drive/v3';
+
+// ── Init from localStorage ────────────────────────────
+(function initDrive() {
+  if (driveClientId) {
+    document.getElementById('drive-clientid-input').value = driveClientId;
+    showDriveAuthArea();
+  }
+})();
+
+function showDriveAuthArea() {
+  document.getElementById('drive-clientid-wrap').style.display = 'none';
+  document.getElementById('drive-auth-area').style.display = 'block';
+}
+
+function driveSetClientId() {
+  const val = document.getElementById('drive-clientid-input').value.trim();
+  if (!val) { showToast('Paste your OAuth Client ID first', 'warn'); return; }
+  driveClientId = val;
+  localStorage.setItem('void_drive_clientid', val);
+  showDriveAuthArea();
+  showToast('Client ID saved. Click Sign In with Google.');
+}
+
+// ── OAuth via Google Identity Services tokenClient ───
+let tokenClient = null;
+
+function ensureTokenClient() {
+  if (tokenClient) return;
+  if (!window.google?.accounts?.oauth2) {
+    showToast('Google Identity Services not loaded yet. Try again.', 'warn'); return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: driveClientId,
+    scope: DRIVE_SCOPE,
+    callback: onTokenResponse,
+  });
+}
+
+function onTokenResponse(resp) {
+  if (resp.error) {
+    showToast('Auth failed: ' + resp.error, 'err');
+    appendOut('// Google Drive auth failed: ' + resp.error, 'out-err');
+    return;
+  }
+  driveToken = resp.access_token;
+  driveTokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
+  driveSignedIn = true;
+
+  // Update UI
+  const btn = document.getElementById('drive-signin-btn');
+  btn.textContent = '✓ Signed in to Google';
+  btn.classList.add('connected');
+  ['btn-save-all','btn-save-one','btn-open','btn-list'].forEach(id =>
+    document.getElementById(id).disabled = false
+  );
+
+  // Try to get user info for display
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {Authorization: 'Bearer ' + driveToken}
+  }).then(r=>r.json()).then(u=>{
+    document.getElementById('drive-user-info').textContent = u.email || 'Signed in';
+  }).catch(()=>{});
+
+  appendOut('// Google Drive: authenticated successfully', 'out-ok');
+  showToast('✓ Connected to Google Drive');
+  ensureDriveFolder();
+}
+
+function driveSignIn() {
+  if (!driveClientId) { showToast('Set Client ID first', 'warn'); return; }
+  ensureTokenClient();
+  if (!tokenClient) return;
+  if (driveSignedIn && Date.now() < driveTokenExpiry) {
+    showToast('Already signed in');
+    return;
+  }
+  tokenClient.requestAccessToken({prompt: driveSignedIn ? '' : 'consent'});
+}
+
+async function ensureToken() {
+  if (!driveToken || Date.now() >= driveTokenExpiry) {
+    return new Promise((resolve) => {
+      ensureTokenClient();
+      const origCb = tokenClient.callback;
+      tokenClient.callback = (resp) => {
+        origCb(resp);
+        resolve(!resp.error);
+      };
+      tokenClient.requestAccessToken({prompt: ''});
+    });
+  }
+  return true;
+}
+
+// ── Drive REST helpers ────────────────────────────────
+async function driveGet(path, params='') {
+  const ok = await ensureToken();
+  if (!ok) throw new Error('Not authenticated');
+  const url = DRIVE_API + path + (params ? '?' + params : '');
+  const r = await fetch(url, {headers:{Authorization:'Bearer '+driveToken}});
+  if (!r.ok) throw new Error(`Drive API ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function driveCreate(metadata, content, mimeType='text/plain', fileId=null) {
+  const ok = await ensureToken();
+  if (!ok) throw new Error('Not authenticated');
+
+  const meta = JSON.stringify(metadata);
+  const boundary = 'void_boundary_' + Date.now();
+  const body = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n${content}\r\n--${boundary}--`;
+
+  const method = fileId ? 'PATCH' : 'POST';
+  const url = (fileId ? `${UPLOAD_API}/files/${fileId}` : `${UPLOAD_API}/files`) +
+              '?uploadType=multipart&fields=id,name,modifiedTime';
+
+  const r = await fetch(url, {
+    method,
+    headers: {
+      Authorization: 'Bearer ' + driveToken,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!r.ok) throw new Error(`Upload ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+// ── Folder management ─────────────────────────────────
+async function ensureDriveFolder() {
+  setStatus('busy', 'DRIVE…');
+  try {
+    // Search for existing VOID-IDE folder
+    const q = encodeURIComponent(`name='${driveFolderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const res = await driveGet('/files', `q=${q}&fields=files(id,name)`);
+    if (res.files && res.files.length > 0) {
+      driveFolderId = res.files[0].id;
+    } else {
+      // Create it
+      const ok = await ensureToken();
+      if (!ok) return;
+      const r = await fetch(`${DRIVE_API}/files?fields=id,name`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + driveToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: driveFolderName,
+          mimeType: 'application/vnd.google-apps.folder',
+        }),
+      });
+      const folder = await r.json();
+      driveFolderId = folder.id;
+      appendOut(`// Created Drive folder: ${driveFolderName}`, 'out-ok');
+    }
+    document.getElementById('drive-folder-name').textContent = driveFolderName;
+    setStatus('ok', 'READY');
+    driveListFiles();
+  } catch(e) {
+    appendOut('// Drive folder error: ' + e.message, 'out-err');
+    setStatus('ok', 'READY');
+  }
+}
+
+// ── Save single file ──────────────────────────────────
+async function driveSaveFile() {
+  if (!activeFile) return;
+  if (!driveSignedIn) { showToast('Sign in to Google first', 'warn'); return; }
+  if (cm) files[activeFile].content = cm.getValue();
+  const f = files[activeFile];
+  setStatus('busy', 'SAVING…');
+  appendOut(`// Saving to Drive: ${f.name}`, 'out-info');
+  try {
+    const meta = {name: f.name, parents: driveFolderId ? [driveFolderId] : []};
+    const result = await driveCreate(meta, f.content, 'text/plain', f.driveId || null);
+    f.driveId = result.id;
+    renderAll();
+    appendOut(`// ☁ Saved: ${f.name} (id: ${result.id})`, 'out-ok');
+    showToast(`☁ Saved to Drive: ${f.name}`);
+    setStatus('ok', 'SAVED');
+    setTimeout(() => setStatus('ok','READY'), 2000);
+  } catch(e) {
+    appendOut('// Drive save error: ' + e.message, 'out-err');
+    showToast('Drive save failed: ' + e.message, 'err');
+    setStatus('err', 'SAVE ERR');
+    setTimeout(() => setStatus('ok','READY'), 3000);
+  }
+}
+
+// ── Save all files ────────────────────────────────────
+async function driveSaveAll() {
+  if (!driveSignedIn) { showToast('Sign in to Google first', 'warn'); return; }
+  if (activeFile && cm) files[activeFile].content = cm.getValue();
+  const all = Object.values(files);
+  setStatus('busy', 'SAVING ALL…');
+  appendOut(`// Saving ${all.length} files to Drive folder "${driveFolderName}"…`, 'out-info');
+  let ok = 0, fail = 0;
+  for (const f of all) {
+    try {
+      const meta = {name: f.name, parents: driveFolderId ? [driveFolderId] : []};
+      const result = await driveCreate(meta, f.content, 'text/plain', f.driveId || null);
+      f.driveId = result.id;
+      appendOut(`// ☁ ${f.name}`, 'out-ok');
+      ok++;
+    } catch(e) {
+      appendOut(`// ✗ ${f.name}: ${e.message}`, 'out-err');
+      fail++;
+    }
+  }
+  renderAll();
+  const msg = `Saved ${ok}/${all.length} files to Drive` + (fail ? ` (${fail} failed)` : '');
+  showToast(msg, fail ? 'warn' : 'ok');
+  appendOut('// ' + msg, ok === all.length ? 'out-ok' : 'out-warn');
+  setStatus('ok', 'READY');
+  driveListFiles();
+}
+
+// ── List files in VOID-IDE folder ────────────────────
+async function driveListFiles() {
+  if (!driveSignedIn || !driveFolderId) return;
+  try {
+    const q = encodeURIComponent(`'${driveFolderId}' in parents and trashed=false`);
+    const res = await driveGet('/files', `q=${q}&fields=files(id,name,modifiedTime,size)&orderBy=name`);
+    const tree = document.getElementById('drive-tree');
+    tree.innerHTML = '';
+    if (!res.files || res.files.length === 0) {
+      tree.innerHTML = '<div style="font-size:9px;color:var(--text3);padding:4px;">No files yet</div>';
+      return;
+    }
+    res.files.forEach(f => {
+      const d = document.createElement('div');
+      d.className = 'drive-file';
+      d.onclick = () => driveDownloadFile(f.id, f.name);
+      const ext = f.name.split('.').pop();
+      const icon = LANG_ICONS[{py:'python',js:'javascript',ts:'typescript',sh:'bash'}[ext]||''] || '📄';
+      d.innerHTML = `<span>${icon}</span><span class="df-name" title="${f.name}">${f.name}</span><span style="font-size:9px;color:var(--text3);">↓</span>`;
+      tree.appendChild(d);
+    });
+  } catch(e) {
+    appendOut('// Drive list error: ' + e.message, 'out-err');
+  }
+}
+
+// ── Download / open a file from Drive ────────────────
+async function driveDownloadFile(fileId, fileName) {
+  setStatus('busy', 'LOADING…');
+  try {
+    const ok = await ensureToken();
+    if (!ok) return;
+    const r = await fetch(`${DRIVE_API}/files/${fileId}?alt=media`, {
+      headers: {Authorization: 'Bearer ' + driveToken}
+    });
+    if (!r.ok) throw new Error('Download failed: ' + r.status);
+    const content = await r.text();
+    const ext = fileName.split('.').pop();
+    const langMap = {py:'python',js:'javascript',ts:'typescript',sh:'bash',txt:'plaintext'};
+    const lang = langMap[ext] || 'plaintext';
+    // Check if already open
+    const existing = Object.values(files).find(f => f.driveId === fileId);
+    if (existing) {
+      existing.content = content;
+      switchFile(existing.id);
+    } else {
+      const id = newFile(fileName, lang, content);
+      files[id].driveId = fileId;
+      renderAll();
+      setEditorContent(content, lang);
+    }
+    showToast(`☁ Opened from Drive: ${fileName}`);
+    setStatus('ok', 'READY');
+  } catch(e) {
+    showToast('Download failed: ' + e.message, 'err');
+    setStatus('err', 'ERR');
+    setTimeout(() => setStatus('ok','READY'), 3000);
+  }
+}
+
+// ── Open folder picker (picks existing Drive folder) ─
+async function driveOpenFolder() {
+  if (!driveSignedIn) { showToast('Sign in first', 'warn'); return; }
+  const name = prompt('Enter Drive folder name to sync with (leave blank for VOID-IDE):', driveFolderName);
+  if (name === null) return;
+  driveFolderName = name.trim() || 'VOID-IDE';
+  driveFolderId = null;
+  document.getElementById('drive-folder-name').textContent = '…';
+  await ensureDriveFolder();
+}
+
+// ── Toolbar Drive button ──────────────────────────────
+function driveSync() {
+  if (!driveSignedIn) {
+    if (driveClientId) driveSignIn();
+    else showToast('Set your Google OAuth Client ID in the sidebar first', 'warn');
+    return;
+  }
+  driveSaveAll();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  initCodeMirror();
+  newFile('main.py', 'python');
+  boot();
+});
+</script>
+</body>
+</html>
